@@ -23,6 +23,10 @@ var CAMEL_TO_UNDERSCORE = {
   isDebug: 'is_debug',
   isVROff: 'is_vr_off',
   isAutopanOff: 'is_autopan_off',
+  domeUp: 'dome_up',
+  domeDown: 'dome_down',
+  isVideoSideBySide: 'is_video_sideBySide',
+  sweep: 'sweep'
 };
 
 /**
@@ -41,6 +45,11 @@ function SceneInfo(opt_params) {
   this.isDebug = Util.parseBoolean(params.isDebug);
   this.isVROff = Util.parseBoolean(params.isVROff);
   this.isAutopanOff = Util.parseBoolean(params.isAutopanOff);
+
+  this.domeUp = params.domeUp;
+  this.domeDown = params.domeDown;
+  this.isVideoSideBySide = Util.parseBoolean(params.isVideoSideBySide);
+  this.sweep = Util.parseArray(params.sweep);
 }
 
 SceneInfo.loadFromGetParams = function() {
@@ -77,8 +86,8 @@ SceneInfo.prototype.isValid = function() {
     this.errorMessage = 'Either image or video URL must be specified.';
     return false;
   }
-  if (this.image && this.video) {
-    this.errorMessage = 'Both image and video URL can\'t be specified.';
+  if (this.image && this.video && !this.sweep) {
+    this.errorMessage = 'If you add image and video, you need to specified a sweep param.';
     return false;
   }
   if (this.image && !this.isValidImage_(this.image)) {

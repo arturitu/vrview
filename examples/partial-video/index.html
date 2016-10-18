@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>VR View - partial video example</title>
+    <meta name=viewport content="width=device-width, initial-scale=1">
+    <meta charset="utf-8" />
+    <link href="../style.css" rel="stylesheet" type="text/css">
+  </head>
+  <body>
+    <h1>Partial Video technique</h1>
+    <h2>How it works</h2>
+    <h3>Is a VR video format ( 360º and stereo 3D ) where the recorded video only covers certain degrees of the sphere.</h3>
+    <p>The recorded video is not 360 degrees, but it is seamless integrated into a 360 degree picture.</p>
+    <p><img src="partialVideoHowItWorks.png" alt="Partial Video technique - How it works"></p>
+    <p>The resulting playing video for the viewer is a 360 degrees stereo video where the action only happens at certain degrees of the scene.</p>
+    <p>This video format radically improves most of the problems and limitations of 360 video : video size, video quality ( resolution, bitrate per angle),  streaming bandwidth, video decoding capabilities of the player, etc...</p>
+    <div id="vrview"></div>
+    <div id="controls">
+      <div id="toggleplay" class="paused"></div>
+      <div id="togglemute"></div>
+    </div>
+    <p>In other words, this format makes possible to play the highest video quality settings available with current VR devices  ( 6k at 60 fps ).</p>
+    <p>For the same reasons, it makes possible to play lower video quality settings using much less resources ( bandwidth, decoding process… ).
+    </p>
+
+    <h2>Record advantages</h2>
+    <h3>It is easier to make stereo 360 videos in this format than full 360 action-everywhere videos.</h3>
+    <p>Many of the current VR videos ( 360 stereo 3D ) are being made by custom rigs of only 2 professional cameras. They record stereo footage, and stitch it in post-process to a 360 picture of the scene, or they record stereo footage on a chroma to later make a CGI environment.</p>
+
+    <h2>About the camera</h2>
+    <h3>The video used in this demo is made with <a href="http://presencecamera.com" target="_blank">presencecamera.com</a> technology.</h3>
+    <p>Presence Camera is a rig + software to make 360 stereo video SEAMLESS without a manual stitching process using 2 off-the-shelf cameras ( any commercial cameras, we used action yi for this demo ).</p>
+    <p>It is an specific technology developed to easily make this kind of seamless videos ( where the action only happens at certain degrees of the scene ).</p>
+    <p>There is not “traditional stitching” involved, so the post-processing is automated by presencecamera.com algorithms.</p>
+    <p>Presence camera aims to democratize the 360 Stereo 3D video content creation.</p>
+
+    <h2>Who are talking about</h2>
+    <p>John Carmack at OC3 speaking about the value of playing some degrees of video instead of the full 360: <a href="https://youtu.be/0yp2-ZXWldM?t=1650" target="_blank">Dynamic streaming Facebook</a>.</p>
+    <p>John Carmack at OC3: "Probably the mayority of content people want to create have some degree of focusing". <a href="https://youtu.be/0yp2-ZXWldM?t=1725" target="_blank">Using only 2 cameras to avoid stitching</a>.</p>
+    <p>John Carmack also talked about the importance of steady 60 fps, something hard to reach on mobile with traditional "360 video" playing, but much easier with the presented format.</p>
+
+    <script src="../../build/vrview.js"></script>
+    <script src="index.js"></script>
+  </body>
+</html>

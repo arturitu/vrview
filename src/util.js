@@ -189,4 +189,14 @@ Util.parseBoolean = function(value) {
   }
 };
 
+Util.parseArray = function (value) {
+  if (value) {
+    var array = value.split(',');
+    for (var i = 0; i < array.length; i++) {
+      array[i] = parseFloat(array[i]);
+    }
+    return array;
+  }
+};
+
 module.exports = Util;

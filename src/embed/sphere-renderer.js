@@ -32,7 +32,6 @@ function SphereRenderer(scene) {
  */
 SphereRenderer.prototype.setPhotosphere = function(src, opt_params) {
   return new Promise(function(resolve, reject) {
-    this.resolve = resolve;
     this.reject = reject;
 
     var params = opt_params || {};
@@ -42,9 +41,14 @@ SphereRenderer.prototype.setPhotosphere = function(src, opt_params) {
 
     // Load texture.
     var loader = new THREE.TextureLoader();
+    var self = this;
     loader.crossOrigin = 'anonymous';
-    loader.load(src, this.onTextureLoaded_.bind(this), undefined,
-                this.onTextureError_.bind(this));
+    loader.load(src,
+      function (texture) {
+        self.onTextureLoaded_(texture, params, resolve);
+      },
+      undefined,
+      this.onTextureError_.bind(this));
   }.bind(this));
 };
 
@@ -53,7 +57,6 @@ SphereRenderer.prototype.setPhotosphere = function(src, opt_params) {
  */
 SphereRenderer.prototype.set360Video = function(videoElement, opt_params) {
   return new Promise(function(resolve, reject) {
-    this.resolve = resolve;
     this.reject = reject;
 
     var params = opt_params || {};
@@ -68,7 +71,7 @@ SphereRenderer.prototype.set360Video = function(videoElement, opt_params) {
     videoTexture.generateMipmaps = false;
     videoTexture.needsUpdate = true;
 
-    this.onTextureLoaded_(videoTexture);
+    this.onTextureLoaded_(videoTexture, params, resolve);
   }.bind(this));
 };
 
@@ -97,12 +100,35 @@ SphereRenderer.prototype.setOpacity = function(opacity, duration) {
   });
 };
 
-SphereRenderer.prototype.onTextureLoaded_ = function(texture) {
+SphereRenderer.prototype.onTextureLoaded_ = function(texture, params, resolve) {
   var sphereLeft;
   var sphereRight;
   if (this.isStereo) {
-    sphereLeft = this.createPhotosphere_(texture, {offsetY: 0.5, scaleY: 0.5});
-    sphereRight = this.createPhotosphere_(texture, {offsetY: 0, scaleY: 0.5});
+    if (!params) {
+      params = {};
+    }
+    if (params.isVideoSideBySide) {
+      params.offsetY = 0;
+      params.scaleY = 1;
+
+      params.offsetX = 0;
+      params.scaleX = 0.5;
+      sphereLeft = this.createPhotosphere_(texture, params);
+      params.offsetX = 0.5;
+      sphereRight = this.createPhotosphere_(texture, params);
+    }else {
+      if (!params) {
+        params = {};
+      }
+      params.offsetX = 0;
+      params.scaleX = 1;
+
+      params.offsetY = 0.5;
+      params.scaleY = 0.5;
+      sphereLeft = this.createPhotosphere_(texture, params);
+      params.offsetY = 0;
+      sphereRight = this.createPhotosphere_(texture, params);
+    }
   } else {
     sphereLeft = this.createPhotosphere_(texture);
     sphereRight = this.createPhotosphere_(texture);
@@ -114,9 +140,13 @@ SphereRenderer.prototype.onTextureLoaded_ = function(texture) {
   sphereRight.layers.set(Eyes.RIGHT);
   sphereRight.eye = Eyes.RIGHT;
 
-  this.scene.getObjectByName('photo').children = [sphereLeft, sphereRight];
+  if (params.group) {
+    this.scene.getObjectByName(params.group).children = [sphereLeft, sphereRight];
+  } else {
+    this.scene.getObjectByName('photo').children = [sphereLeft, sphereRight];
+  }
 
-  this.resolve();
+  resolve();
 };
 
 SphereRenderer.prototype.onTextureError_ = function(error) {
@@ -126,6 +156,7 @@ SphereRenderer.prototype.onTextureError_ = function(error) {
 
 SphereRenderer.prototype.createPhotosphere_ = function(texture, opt_params) {
   var p = opt_params || {};
+  p.scale = p.scale || 1;
   p.scaleX = p.scaleX || 1;
   p.scaleY = p.scaleY || 1;
   p.offsetX = p.offsetX || 0;
@@ -135,7 +166,7 @@ SphereRenderer.prototype.createPhotosphere_ = function(texture, opt_params) {
   p.thetaStart = p.thetaStart || 0;
   p.thetaLength = p.thetaLength || Math.PI;
 
-  var geometry = new THREE.SphereGeometry(1, 48, 48,
+  var geometry = new THREE.SphereGeometry(p.scale, 48, 48,
       p.phiStart, p.phiLength, p.thetaStart, p.thetaLength);
   geometry.applyMatrix(new THREE.Matrix4().makeScale(-1, 1, 1));
   var uvs = geometry.faceVertexUvs[0];

@@ -23,6 +23,9 @@ var Util = require('../util');
 var VideoProxy = require('./video-proxy');
 var WebVRManager = require('webvr-boilerplate');
 
+var assetsToLoad = 1;
+var assetsLoaded = 0;
+
 var AUTOPAN_DURATION = 3000;
 var AUTOPAN_ANGLE = 0.4;
 
@@ -97,11 +100,63 @@ WorldRenderer.prototype.setScene = function(scene) {
     });
   }
 
-  // If we're dealing with an image, and not a video.
-  if (scene.image && !scene.video) {
+  // If we're dealing with an image.
+  if (scene.image) {
+    if (scene.video) {
+      // Add a extra Group if have both video & image
+      var videoGroup = new THREE.Object3D();
+      videoGroup.name = 'video';
+      self.scene.add(videoGroup);
+      assetsToLoad++;
+    }
+    if (scene.sweep) {
+      // Add an extra length to prevent seams between images
+      var domeOverlap = 0.001;
+      if (scene.domeUp) {
+        var domeUpGroup = new THREE.Object3D();
+        domeUpGroup.name = 'domeUp';
+        this.scene.add(domeUpGroup);
+        assetsToLoad++;
+        var paramsUp = {
+          isStereo: scene.isStereo
+        };
+        paramsUp.scale = 0.999;
+        paramsUp.group = 'domeUp';
+        paramsUp.phiStart = 0;
+        paramsUp.phiLength = Math.PI * 2;
+        paramsUp.thetaStart = 0;
+        paramsUp.thetaLength = (scene.sweep[2] + domeOverlap) * (Math.PI * 2);
+        this.sphereRenderer.setPhotosphere(scene.domeUp, paramsUp).then(function () {
+          self.didLoad_();
+        }).catch(self.didLoadFail_.bind(self));
+      }
+      if (scene.domeDown) {
+        var domeDownGroup = new THREE.Object3D();
+        domeDownGroup.name = 'domeDown';
+        this.scene.add(domeDownGroup);
+        assetsToLoad++;
+        var paramsDown = {
+          isStereo: scene.isStereo
+        };
+        paramsDown.scale = 0.999;
+        paramsDown.group = 'domeDown';
+        paramsDown.phiStart = 0;
+        paramsDown.phiLength = Math.PI * 2;
+        paramsDown.thetaStart = (scene.sweep[2] + scene.sweep[3] - domeOverlap) * (Math.PI * 2);
+        paramsDown.thetaLength = (scene.sweep[2] + domeOverlap) * (Math.PI * 2);
+        this.sphereRenderer.setPhotosphere(scene.domeDown, paramsDown).then(function () {
+          self.didLoad_();
+        }).catch(self.didLoadFail_.bind(self));
+      }
+      params.group = 'photo';
+      params.phiStart = (scene.sweep[0] + scene.sweep[1]) * (Math.PI * 2);
+      params.phiLength = (1 - scene.sweep[1]) * (Math.PI * 2);
+      params.thetaStart = scene.sweep[2] * (Math.PI * 2);
+      params.thetaLength = scene.sweep[3] * (Math.PI * 2);
+    }
     if (scene.preview) {
       // First load the preview.
-      this.sphereRenderer.setPhotosphere(scene.preview, params).then(function() {
+      this.sphereRenderer.setPhotosphere(scene.preview, params).then(function () {
         // As soon as something is loaded, emit the load event to hide the
         // loading progress bar.
         self.didLoad_();
@@ -110,18 +165,20 @@ WorldRenderer.prototype.setScene = function(scene) {
       }).catch(self.didLoadFail_.bind(self));
     } else {
       // No preview -- go straight to rendering the full image.
-      this.sphereRenderer.setPhotosphere(scene.image, params).then(function() {
+      this.sphereRenderer.setPhotosphere(scene.image, params).then(function () {
         self.didLoad_();
       }).catch(self.didLoadFail_.bind(self));
     }
-  } else if (scene.video) {
+  }
+
+  if (scene.video) {
     if (Util.isIE11()) {
       // On IE 11, if an 'image' param is provided, load it instead of showing
       // an error.
       //
       // TODO(smus): Once video textures are supported, remove this fallback.
       if (scene.image) {
-        this.sphereRenderer.setPhotosphere(scene.image, params).then(function() {
+        this.sphereRenderer.setPhotosphere(scene.image, params).then(function () {
           self.didLoad_();
         }).catch(self.didLoadFail_.bind(self));
       } else {
@@ -129,12 +186,23 @@ WorldRenderer.prototype.setScene = function(scene) {
       }
     } else {
       this.player = new AdaptivePlayer();
-      this.player.on('load', function(videoElement) {
-        self.sphereRenderer.set360Video(videoElement, params).then(function() {
+      this.player.on('load', function (videoElement) {
+        if (scene.sweep) {
+          var paramsVideo = {
+            isStereo: scene.isStereo
+          };
+          paramsVideo.isVideoSideBySide = scene.isVideoSideBySide;
+          paramsVideo.group = 'video';
+          paramsVideo.phiStart = scene.sweep[0] * (Math.PI * 2);
+          paramsVideo.phiLength = scene.sweep[1] * (Math.PI * 2);
+          paramsVideo.thetaStart = scene.sweep[2] * (Math.PI * 2);
+          paramsVideo.thetaLength = scene.sweep[3] * (Math.PI * 2);
+        }
+        self.sphereRenderer.set360Video(videoElement, paramsVideo).then(function () {
           self.didLoad_({videoElement: videoElement});
         }).catch(self.didLoadFail_.bind(self));
       });
-      this.player.on('error', function(error) {
+      this.player.on('error', function (error) {
         self.didLoadFail_('Video load error: ' + error);
       });
       this.player.load(scene.video);
@@ -163,9 +231,12 @@ WorldRenderer.prototype.destroy = function() {
 
 WorldRenderer.prototype.didLoad_ = function(opt_event) {
   var event = opt_event || {};
-  this.emit('load', event);
-  if (this.sceneResolve) {
-    this.sceneResolve();
+  assetsLoaded++;
+  if (assetsLoaded >= assetsToLoad) {
+    this.emit('load', event);
+    if (this.sceneResolve) {
+      this.sceneResolve();
+    }
   }
 };
 
